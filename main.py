@@ -55,7 +55,6 @@ while(hour != 21):
 
     if len(apartment_info) == 0:
         time.sleep(3600)#sleep 1hr
-        driver.close() 
         continue 
 
 
@@ -87,6 +86,6 @@ while(hour != 21):
         smtp.login("conordmcdevitt@gmail.com", EMAIL_PASS)
         smtp.sendmail(EMAIL, EMAIL, em.as_string())
 
-    driver.close()
+
     hour = datetime.datetime.now().hour
     time.sleep(3600)
