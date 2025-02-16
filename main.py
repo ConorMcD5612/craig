@@ -8,52 +8,51 @@ from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+import requests
+import mailtrap as mt
 
 load_dotenv()
 EMAIL_PASS = os.getenv("EMAIL_PASS")
 CRAIG_URL = os.getenv("CRAIG_URL")
 EMAIL = os.getenv("EMAIL")
-
-hour = datetime.datetime.now().hour
-
-options = webdriver.ChromeOptions()
-options.add_argument("--headless=new")
-driver = webdriver.Chrome(options=options)
-
-driver.get(CRAIG_URL)
+API = os.getenv("API")
 
 
-content = driver.page_source.encode("utf-8").strip()
-soup = BeautifulSoup(content, "html.parser")
-
-apartments = soup.find_all("div", class_="gallery-card")
-
-# amount of posts that are in area (search params)
-postings = int(soup.find("div", class_="count").get_text()[0])
-
-apartment_info = []
-# get info for each apartment
-for apartment in apartments[:postings]:
-    uptime = apartment.find("div", class_="meta").get_text()
-
-    # if not made in the last hour exit program
-    if "min" in uptime:
-        apartment_info.append(
-            {
-                "price": apartment.find("span", class_="priceinfo").get_text(),
-                "link": apartment.find("a", class_="main").get("href"),
-                "title": apartment.find("span", class_="label").get_text(),
-            }
-        )
 
 
-if len(apartment_info) == 0:
-    exit()
+# parse craigslist page into html
+def get_apartments():
+    #get html from craiglists page 
+    page = requests.get(CRAIG_URL)
+    soup = BeautifulSoup(page.content, "html5lib")
+    
+    #get apartments and that page 
+    apartments = soup.find_all("li", class_="cl-static-search-result")
+    print(apartments)
+    
+    return apartments
+
+def get_info(apartments):
+    apartment_info = [{
+        "price": apartment.find("div", class_="price").get_text(),
+        "link": apartment.find("a").get("href"),
+        "title": apartment.find("div", class_="title").get_text()
+    } for apartment in apartments]
+
+    return apartment_info
+
+def create_email(apartment_info):
+    pass
+    
+    
+    # get info for each apartment
+    
+
 
 
 html_content = ""
 plain_content = ""
-
+apartment_info = get_info(get_apartments())
 # make strings
 for apartment in apartment_info:
     html_content += f'<h1><a href="{apartment["link"]}">{apartment["title"]}</a></h1><h2>{apartment["price"]}</h2><br>'
@@ -75,10 +74,19 @@ em.attach(html_msg)
 
 
 context = ssl.create_default_context()
-with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as smtp:
-    smtp.login("conordmcdevitt@gmail.com", EMAIL_PASS)
-    smtp.sendmail(EMAIL, EMAIL, em.as_string())
+message = f"""\
+Subject: Hi Mailtrap
+To: {EMAIL}
+From: hello@demomailtrap.com
+
+This is a test e-mail message."""
+
+with smtplib.SMTP("live.smtp.mailtrap.io", 587) as server:
+    server.starttls()
+    server.login("api", API)
+    server.sendmail("hello@demomailtrap.com", EMAIL, message)
 
 
-hour = datetime.datetime.now().hour
 
+
+# create mail object
