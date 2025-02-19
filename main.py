@@ -1,6 +1,4 @@
 import os
-import ssl
-import datetime
 import smtplib
 from dotenv import load_dotenv
 from selenium import webdriver
@@ -8,8 +6,11 @@ from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-import requests
+from selenium_stealth import stealth 
 import mailtrap as mt
+import time
+import requests
+import json
 
 load_dotenv()
 EMAIL_PASS = os.getenv("EMAIL_PASS")
@@ -18,23 +19,34 @@ EMAIL = os.getenv("EMAIL")
 API = os.getenv("API")
 SENDER = os.getenv("SENDER")
 
-#have to use selenium to scrape dynamic data 
+#think have to give up on dynamic not good enough at web scraping to know how to do this 
+#can have so it scrapes every 24 hours and sends email with new listings
+def main():
+    #start selenium browser and get html from craiglists page
 
+    
+    res = requests.get(CRAIG_URL)
+    
+    apartments = get_apartments(res.content)
+    print(apartments)
+    
+    apartment_info = get_info(apartments)
+    #em = create_email(apartment_info)
+    #send_email(em)
+    
+    
 
 # parse craigslist page into html
-def get_apartments():
-    #get html from craiglists page 
-    page = requests.get(CRAIG_URL)
-    soup = BeautifulSoup(page.content, "html5lib")
-    print(soup.prettify())
+def get_apartments(html):
+
+    #parse html
     
-    #get apartments and that page 
-    apartments = soup.find_all("li", class_="cl-static-search-result")
-    #sort by date (past 24 hrs)
-    sorted_apartments = []
+    soup = BeautifulSoup(html, "html.parser")
    
+    apartments = soup.find_all("li", class_="cl-static-search-result")
     
-    return apartments
+    
+    return apartments[:10]
 
 def get_info(apartments):
     apartment_info = [{
@@ -42,7 +54,6 @@ def get_info(apartments):
         "link": apartment.find("a").get("href"),
         "title": apartment.find("div", class_="title").get_text(),
     } for apartment in apartments]
-
 
     return apartment_info
 
@@ -76,9 +87,26 @@ def send_email(em):
         server.sendmail("hello@demomailtrap.com", EMAIL, em.as_string())
         
     # get info for each apartment
+
+# will have it so it filters out listing that have already been emailed
+    # json dump send lists
+    #empty out once a week or something 
+    # send ones that aren't in json
+def check_if_sent(apartment_info) -> list:
+    seen_apartments = []
+    if os.path.exists("apartments_seen.json"):
+        with open("apartments_seen.json", "r") as f:
+            seen_apartments = json.load(f)
     
 
+    #return unseen apartments 
 
 
 
-apartment_info = get_info(get_apartments())
+main()
+
+
+
+
+
+
